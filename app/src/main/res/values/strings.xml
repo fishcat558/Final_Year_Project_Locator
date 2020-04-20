@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">OpenCVTest</string>
+    <string name="ButtonCamera">Take Picture</string>
+    <string name="ButtonGallery">Load Image </string>
+
+
+</resources>
