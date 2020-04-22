@@ -45,9 +45,8 @@ import static android.os.Environment.getExternalStoragePublicDirectory;
 public class MainActivity extends AppCompatActivity {
 
     public static final int ImageGalleryReq = 20;
-    public static final int CAMERA_REQUEST = 4;
 
-    String pathToFile;
+    String pathToFile,location1,location2;
     ImageView ImgPic,testView;
     Bitmap testBitmap,img;
     InputStream inputStream;
@@ -55,6 +54,7 @@ public class MainActivity extends AppCompatActivity {
     TextToSpeech t1;
     public Context mContext;
     Color ballColour;
+
 
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -81,7 +81,6 @@ public class MainActivity extends AppCompatActivity {
             }
 
         });
-
         b1.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -100,7 +99,6 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 onLoadImage();
-//
             }
         });
         buttonProc.setOnClickListener(new View.OnClickListener() {
@@ -111,39 +109,26 @@ public class MainActivity extends AppCompatActivity {
             }
         });
     }
-
-
     public void onLoadImage() {
-        //invoke image
         Intent loadImg = new Intent(Intent.ACTION_PICK);
-        //Where from?
         File picDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES);
         String picDirPath = picDir.getPath();
-        //Get URI rep
         Uri data = Uri.parse(picDirPath);
-        //Set data(where to look) & type (what media to look for)
         loadImg.setDataAndType(data, "image/*");
         startActivityForResult(loadImg, ImageGalleryReq);
-
     }
-
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode,resultCode,data);
         if (resultCode == RESULT_OK) {
             if (requestCode == ImageGalleryReq) {
-                //Uri=address of image
-                //declare stream to read img data from sd
                 assert data != null;
                 Uri imageUri = data.getData();
-                //get input stream based on uri of img
                 try {
                     assert imageUri != null;
                     inputStream = getContentResolver().openInputStream(imageUri);
-                    //assume worked, get bitmap from stream
                     img = BitmapFactory.decodeStream(inputStream);
                     ImgPic.setImageBitmap(img);
-                    //ImgPic.setImageURI(imageUri);
                 } catch (FileNotFoundException e) {
                     e.printStackTrace();
                     Toast.makeText(getApplicationContext(), "Unable to open img", Toast.LENGTH_LONG).show();
@@ -152,7 +137,6 @@ public class MainActivity extends AppCompatActivity {
             if (requestCode == 1) {
                 Bitmap bitmap1 = BitmapFactory.decodeFile(pathToFile);
                 ImgPic.setImageBitmap(bitmap1);
-
             }
         }else {
             Toast.makeText(getApplicationContext(),"Error-result", Toast.LENGTH_LONG).show();
@@ -161,78 +145,48 @@ public class MainActivity extends AppCompatActivity {
     @RequiresApi(api = Build.VERSION_CODES.Q)
     public void convertGray() {
         if (img != null) {
-            /* convert bitmap to mat */
-            Mat mat = new Mat(img.getWidth(), img.getHeight(),
-                    CvType.CV_8UC1);
-            Mat greyMat = new Mat(img.getWidth(), img.getHeight(),
-                    CvType.CV_8UC1);
-            Mat cannyMat = new Mat(img.getWidth(), img.getHeight(),
-                    CvType.CV_8UC1);
+            Mat mat = new Mat(img.getWidth(), img.getHeight(),CvType.CV_8UC1);
+            Mat greyMat = new Mat(img.getWidth(), img.getHeight(),CvType.CV_8UC1);
+            Mat cannyMat = new Mat(img.getWidth(), img.getHeight(),CvType.CV_8UC1);
             Bitmap testBitmap = img.copy(img.getConfig(),true);
             Utils.bitmapToMat(img, mat);
-            /* convert to grayscale */
             Imgproc.cvtColor(mat, greyMat, Imgproc.COLOR_BGR2GRAY);
-//            Imgproc.Canny(greyMat,cann);
             Imgproc.GaussianBlur(greyMat, cannyMat, new Size(9, 9), 0);
             Imgproc.adaptiveThreshold(cannyMat, cannyMat, 255, Imgproc.ADAPTIVE_THRESH_MEAN_C, Imgproc.THRESH_BINARY_INV, 5, 4);
-// accumulator value
             double dp = 1d;
-// minimum distance between the center coordinates of detected circles in pixels
             double minDist = 500;
-// min and max radii (set these values as you desire)
             int minRadius = 100, maxRadius = 800;
-// param1 = gradient value used to handle edge detection
-// param2 = Accumulator threshold value for the
-// cv2.CV_HOUGH_GRADIENT method.
-// The smaller the threshold is, the more circles will be
-// detected (including false circles).
-// The larger the threshold is, the more circles will
-// potentially be returned.
             double param1 = 70, param2 = 72;
-            /* create a Mat object to store the circles detected */
             Mat circles = new Mat(img.getWidth(),
                     img.getHeight(), CvType.CV_8UC1);
-            /* find the circle in the image */
             Imgproc.HoughCircles(cannyMat, circles,
-                    Imgproc.CV_HOUGH_GRADIENT, dp, minDist, param1,
-                    param2, minRadius, maxRadius);
-            /* get the number of circles detected */
+                    Imgproc.CV_HOUGH_GRADIENT, dp, minDist, param1,param2, minRadius, maxRadius);
             int numberOfCircles = (circles.rows() == 0) ? 0 : circles.cols();
-            /* draw the circles found on the image */
             for (int i=0; i<numberOfCircles; i++) {
-                /* get the circle details, circleCoordinates[0, 1, 2] = (x,y,r)
-                 * (x,y) are the coordinates of the circle's center
-                 */
                 double[] circleCoordinates = circles.get(0, i);
-
                 int x = (int) circleCoordinates[0], y = (int) circleCoordinates[1];
                 Point centre = new Point(x, y);
-
                 int radius = (int) circleCoordinates[2];
-
-                /* circle's outline */
-                Imgproc.circle(mat, centre, radius, new Scalar(0,
-                        255, 0), 10);
-                /* circle's center outline */
-                Imgproc.rectangle(mat, new Point(x - 5, y - 5),
-                        new Point(x + 5, y + 5),
-                        new Scalar(0, 128, 255), 5);
-                Color ballColour =  img.getColor(x,y);
-
+                Imgproc.circle(mat, centre, radius, new Scalar(0,255,0),10);
+                Imgproc.rectangle(mat, new Point(x - 5, y - 5),new Point(x + 5, y + 5),new Scalar(0, 128, 255), 5);
+                ballColour =  img.getColor(x,y);
+                if (centre.y > img.getHeight()) {
+                    location1 = "top";
+                }if  (centre.y < img.getHeight()){
+                        location1 = "bottom";
+                }if (centre.x > img.getWidth()){
+                    location2 = "right";
+                }if (centre.x < img.getWidth()){
+                    location2 = "left";
+                }
             }
-
             Utils.matToBitmap(mat,img);
             Utils.matToBitmap(cannyMat,testBitmap);
             ImgPic.setImageBitmap(img);
             testView.setImageBitmap(testBitmap);
-
-            String toSpeak= "Image processing finished, there are"+numberOfCircles+"balls detected, The colour of the balls are"+ballColour;
-            //find locations, take coordinates from centres compare to image dimensions
-
-
+            String toSpeak= "Image processing finished, there are"+numberOfCircles+"balls detected, The colour of the balls are"+ballColour+"the balls are located at the"+location1+location2;
             Toast.makeText(getApplicationContext(),toSpeak,Toast.LENGTH_SHORT).show();
             t1.speak(toSpeak,TextToSpeech.QUEUE_FLUSH,null);
-
         }
     }
 }
